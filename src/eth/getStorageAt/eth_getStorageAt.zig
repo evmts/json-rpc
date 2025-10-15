@@ -24,7 +24,7 @@ pub const Params = struct {
     /// Block number, tag, or block hash
     block: types.BlockSpec,
 
-    pub fn jsonStringify(self: Params, jws: anytype) !void {
+    pub fn jsonStringify(self: Params, jws: *std.json.Stringify) !void {
         try jws.beginArray();
         try jws.write(self.address);
         try jws.write(self.storage slot);
@@ -49,7 +49,7 @@ pub const Result = struct {
     /// hex encoded bytes
     value: types.Quantity,
 
-    pub fn jsonStringify(self: Result, jws: anytype) !void {
+    pub fn jsonStringify(self: Result, jws: *std.json.Stringify) !void {
         try jws.write(self.value);
     }
 

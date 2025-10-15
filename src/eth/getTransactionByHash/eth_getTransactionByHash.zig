@@ -18,7 +18,7 @@ pub const Params = struct {
     /// 32 byte hex value
     transaction hash: types.Hash,
 
-    pub fn jsonStringify(self: Params, jws: anytype) !void {
+    pub fn jsonStringify(self: Params, jws: *std.json.Stringify) !void {
         try jws.beginArray();
         try jws.write(self.transaction hash);
         try jws.endArray();
@@ -38,7 +38,7 @@ pub const Params = struct {
 pub const Result = struct {
     value: types.Quantity,
 
-    pub fn jsonStringify(self: Result, jws: anytype) !void {
+    pub fn jsonStringify(self: Result, jws: *std.json.Stringify) !void {
         try jws.write(self.value);
     }
 

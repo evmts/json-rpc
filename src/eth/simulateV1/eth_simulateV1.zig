@@ -16,7 +16,7 @@ pub const Params = struct {
     /// Block number, tag, or block hash
     block tag: types.BlockSpec,
 
-    pub fn jsonStringify(self: Params, jws: anytype) !void {
+    pub fn jsonStringify(self: Params, jws: *std.json.Stringify) !void {
         try jws.beginArray();
         try jws.write(self.payload);
         try jws.write(self.block tag);
@@ -39,7 +39,7 @@ pub const Result = struct {
     /// Full results of eth_simulate
     value: types.Quantity,
 
-    pub fn jsonStringify(self: Result, jws: anytype) !void {
+    pub fn jsonStringify(self: Result, jws: *std.json.Stringify) !void {
         try jws.write(self.value);
     }
 

@@ -17,7 +17,7 @@ pub const method = "engine_newPayloadV2";
 pub const Params = struct {
     execution payload: types.Quantity,
 
-    pub fn jsonStringify(self: Params, jws: anytype) !void {
+    pub fn jsonStringify(self: Params, jws: *std.json.Stringify) !void {
         try jws.beginArray();
         try jws.write(self.execution payload);
         try jws.endArray();
@@ -38,7 +38,7 @@ pub const Result = struct {
     /// Payload status object deprecating INVALID_BLOCK_HASH status
     value: types.Quantity,
 
-    pub fn jsonStringify(self: Result, jws: anytype) !void {
+    pub fn jsonStringify(self: Result, jws: *std.json.Stringify) !void {
         try jws.write(self.value);
     }
 

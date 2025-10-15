@@ -15,7 +15,7 @@ pub const method = "eth_syncing";
 /// Parameters for `eth_syncing`
 pub const Params = struct {
 
-    pub fn jsonStringify(self: Params, jws: anytype) !void {
+    pub fn jsonStringify(self: Params, jws: *std.json.Stringify) !void {
         _ = self;
         try jws.write(.{});
     }
@@ -33,7 +33,7 @@ pub const Result = struct {
     /// Syncing status
     value: types.Quantity,
 
-    pub fn jsonStringify(self: Result, jws: anytype) !void {
+    pub fn jsonStringify(self: Result, jws: *std.json.Stringify) !void {
         try jws.write(self.value);
     }
 

@@ -21,7 +21,7 @@ pub const Params = struct {
     /// Payload attributes object V2
     payload attributes: types.Quantity,
 
-    pub fn jsonStringify(self: Params, jws: anytype) !void {
+    pub fn jsonStringify(self: Params, jws: *std.json.Stringify) !void {
         try jws.beginArray();
         try jws.write(self.forkchoice state);
         try jws.write(self.payload attributes);
@@ -44,7 +44,7 @@ pub const Result = struct {
     /// Forkchoice updated response
     value: types.Quantity,
 
-    pub fn jsonStringify(self: Result, jws: anytype) !void {
+    pub fn jsonStringify(self: Result, jws: *std.json.Stringify) !void {
         try jws.write(self.value);
     }
 

@@ -24,7 +24,7 @@ pub const Params = struct {
     /// rewardPercentiles
     rewardpercentiles: types.Quantity,
 
-    pub fn jsonStringify(self: Params, jws: anytype) !void {
+    pub fn jsonStringify(self: Params, jws: *std.json.Stringify) !void {
         try jws.beginArray();
         try jws.write(self.blockcount);
         try jws.write(self.newestblock);
@@ -49,7 +49,7 @@ pub const Result = struct {
     /// feeHistoryResults
     value: types.Quantity,
 
-    pub fn jsonStringify(self: Result, jws: anytype) !void {
+    pub fn jsonStringify(self: Result, jws: *std.json.Stringify) !void {
         try jws.write(self.value);
     }
 

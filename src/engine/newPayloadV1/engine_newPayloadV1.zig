@@ -18,7 +18,7 @@ pub const Params = struct {
     /// Execution payload object V1
     execution payload: types.Quantity,
 
-    pub fn jsonStringify(self: Params, jws: anytype) !void {
+    pub fn jsonStringify(self: Params, jws: *std.json.Stringify) !void {
         try jws.beginArray();
         try jws.write(self.execution payload);
         try jws.endArray();
@@ -39,7 +39,7 @@ pub const Result = struct {
     /// Payload status object V1
     value: types.Quantity,
 
-    pub fn jsonStringify(self: Result, jws: anytype) !void {
+    pub fn jsonStringify(self: Result, jws: *std.json.Stringify) !void {
         try jws.write(self.value);
     }
 

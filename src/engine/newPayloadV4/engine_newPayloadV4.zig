@@ -25,7 +25,7 @@ pub const Params = struct {
     root of the parent beacon block: types.Hash,
     execution requests: types.Quantity,
 
-    pub fn jsonStringify(self: Params, jws: anytype) !void {
+    pub fn jsonStringify(self: Params, jws: *std.json.Stringify) !void {
         try jws.beginArray();
         try jws.write(self.execution payload);
         try jws.write(self.expected blob versioned hashes);
@@ -52,7 +52,7 @@ pub const Result = struct {
     /// Payload status object deprecating INVALID_BLOCK_HASH status
     value: types.Quantity,
 
-    pub fn jsonStringify(self: Result, jws: anytype) !void {
+    pub fn jsonStringify(self: Result, jws: *std.json.Stringify) !void {
         try jws.write(self.value);
     }
 

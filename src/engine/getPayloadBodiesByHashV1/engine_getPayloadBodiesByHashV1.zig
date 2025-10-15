@@ -17,7 +17,7 @@ pub const method = "engine_getPayloadBodiesByHashV1";
 pub const Params = struct {
     array of block hashes: types.Quantity,
 
-    pub fn jsonStringify(self: Params, jws: anytype) !void {
+    pub fn jsonStringify(self: Params, jws: *std.json.Stringify) !void {
         try jws.beginArray();
         try jws.write(self.array of block hashes);
         try jws.endArray();
@@ -37,7 +37,7 @@ pub const Params = struct {
 pub const Result = struct {
     value: types.Quantity,
 
-    pub fn jsonStringify(self: Result, jws: anytype) !void {
+    pub fn jsonStringify(self: Result, jws: *std.json.Stringify) !void {
         try jws.write(self.value);
     }
 

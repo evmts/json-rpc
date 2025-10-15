@@ -18,7 +18,7 @@ pub const Params = struct {
     /// hex encoded unsigned integer
     filter identifier: types.Quantity,
 
-    pub fn jsonStringify(self: Params, jws: anytype) !void {
+    pub fn jsonStringify(self: Params, jws: *std.json.Stringify) !void {
         try jws.beginArray();
         try jws.write(self.filter identifier);
         try jws.endArray();
@@ -39,7 +39,7 @@ pub const Result = struct {
     /// Filter results
     value: types.Quantity,
 
-    pub fn jsonStringify(self: Result, jws: anytype) !void {
+    pub fn jsonStringify(self: Result, jws: *std.json.Stringify) !void {
         try jws.write(self.value);
     }
 
