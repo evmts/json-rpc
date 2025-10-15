@@ -1,82 +1,39 @@
 /**
- * Generic JSON-RPC 2.0 request/response types
+ * Ethereum JSON-RPC Type System
  *
- * @example
- * ```ts
- * import { method, type Params, type Result } from './eth/getBalance/eth_getBalance.js'
- * import { JsonRpc } from './JsonRpc.js'
- *
- * type GetBalanceRpc = JsonRpc<typeof method, Params, Result>
- * const request: GetBalanceRpc['Request'] = {
- *   jsonrpc: '2.0',
- *   method: 'eth_getBalance',
- *   params: { address: Address('0x...'), block: 'latest' },
- *   id: 1
- * }
- * ```
+ * This module provides the root JSON-RPC namespace that combines all method namespaces.
+ * Imports are kept tree-shakable - only import what you use.
  */
-export interface JsonRpc<
-  Method extends string,
-  Params,
-  Result
-> {
-  /**
-   * JSON-RPC 2.0 Request
-   */
-  Request: {
-    /** JSON-RPC version (always "2.0") */
-    jsonrpc: '2.0'
-    /** The method name */
-    method: Method
-    /** Request parameters */
-    params: Params
-    /** Request ID (can be string, number, or null) */
-    id: string | number | null
-  }
 
-  /**
-   * JSON-RPC 2.0 Success Response
-   */
-  Response: {
-    /** JSON-RPC version (always "2.0") */
-    jsonrpc: '2.0'
-    /** Result value */
-    result: Result
-    /** Request ID (matches the request) */
-    id: string | number | null
-  }
+import type { EngineMethod, EngineParams, EngineResult, EngineMethodMap } from './engine/methods.js'
+export * from './engine/methods.js'
+import type { EthMethod, EthParams, EthResult, EthMethodMap } from './eth/methods.js'
+export * from './eth/methods.js'
+import type { DebugMethod, DebugParams, DebugResult, DebugMethodMap } from './debug/methods.js'
+export * from './debug/methods.js'
 
-  /**
-   * JSON-RPC 2.0 Error Response
-   */
-  ErrorResponse: {
-    /** JSON-RPC version (always "2.0") */
-    jsonrpc: '2.0'
-    /** Error object */
-    error: {
-      /** Error code */
-      code: number
-      /** Error message */
-      message: string
-      /** Additional error data (optional) */
-      data?: unknown
-    }
-    /** Request ID (matches the request, or null if request was invalid) */
-    id: string | number | null
-  }
-}
+// Export primitive types separately
+export * as types from './types/index.js'
 
 /**
- * Helper type to extract Request type from a JsonRpc interface
+ * Union of all JSON-RPC method names
  */
-export type JsonRpcRequest<T extends JsonRpc<string, any, any>> = T['Request']
+export type JsonRpcMethod = EngineMethod | EthMethod | DebugMethod
 
 /**
- * Helper type to extract Response type from a JsonRpc interface
+ * Extract parameters type for any JSON-RPC method
  */
-export type JsonRpcResponse<T extends JsonRpc<string, any, any>> = T['Response']
+export type JsonRpcParams<M extends JsonRpcMethod> =
+  M extends EngineMethod ? EngineParams<M> :
+  M extends EthMethod ? EthParams<M> :
+  M extends DebugMethod ? DebugParams<M> :
+  never
 
 /**
- * Helper type to extract ErrorResponse type from a JsonRpc interface
+ * Extract result type for any JSON-RPC method
  */
-export type JsonRpcErrorResponse<T extends JsonRpc<string, any, any>> = T['ErrorResponse']
+export type JsonRpcResult<M extends JsonRpcMethod> =
+  M extends EngineMethod ? EngineResult<M> :
+  M extends EthMethod ? EthResult<M> :
+  M extends DebugMethod ? DebugResult<M> :
+  never
