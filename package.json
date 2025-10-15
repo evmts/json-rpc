@@ -1,0 +1,54 @@
+{
+  "name": "@tevm/apis",
+  "version": "1.0.0-rc",
+  "description": "Type-safe TypeScript and Zig code generated from the official Ethereum JSON-RPC specification",
+  "keywords": [
+    "ethereum",
+    "json-rpc",
+    "tevm",
+    "typescript",
+    "zig",
+    "openrpc",
+    "type-safe",
+    "execution-apis"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tevm/specs.git"
+  },
+  "license": "CC0-1.0",
+  "contributors": [
+    "Fucory <x.com/fucory>"
+  ],
+  "private": false,
+  "sideEffects": false,
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts",
+    "src/**/*.ts",
+    "!src/**/*.test.ts"
+  ],
+  "scripts": {
+    "build": "bun run build:types && bun run build:ts",
+    "build:types": "zig build generate",
+    "build:ts": "tsc",
+    "test": "bun test",
+    "clean": "rm -rf dist && zig build clean",
+    "prepublishOnly": "bun run clean && bun run build"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.7.2"
+  }
+}

@@ -89,4 +89,24 @@ pub fn build(b: *std.Build) void {
     const run_generate = b.addRunArtifact(generate_exe);
     const generate_step = b.step("generate", "Generate method JSON files from OpenRPC spec");
     generate_step.dependOn(&run_generate.step);
+
+    // Build TypeScript step - compiles TypeScript to JavaScript
+    const build_ts_step = b.step("build-ts", "Build TypeScript code");
+    const run_tsc = b.addSystemCommand(&.{ "bun", "run", "build:ts" });
+    run_tsc.setCwd(b.path("."));
+    build_ts_step.dependOn(&run_tsc.step);
+
+    // Build step - builds both Zig tests and TypeScript
+    const build_step = b.step("build", "Build Zig and TypeScript code");
+    build_step.dependOn(&mod_tests.step);
+    build_step.dependOn(build_ts_step);
+
+    // Test TypeScript step
+    const test_ts_step = b.step("test-ts", "Run TypeScript tests");
+    const run_bun_test = b.addSystemCommand(&.{ "bun", "test" });
+    run_bun_test.setCwd(b.path("."));
+    test_ts_step.dependOn(&run_bun_test.step);
+
+    // Add TypeScript tests to main test step
+    test_step.dependOn(test_ts_step);
 }
