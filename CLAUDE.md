@@ -43,53 +43,144 @@ src/
 
 **IMPORTANT**: This project uses Zig 0.15.2. Claude's training data is based on Zig 0.14, which has significant API differences.
 
-### Key API Differences in 0.15.2
+### Critical API Differences in 0.15.2
 
-1. **JSON API** (used extensively in `tools/generate.zig`):
-   ```zig
-   // 0.15.2 patterns used in this codebase
-   std.json.parseFromSlice([]u8, allocator, content, .{})
-   std.json.Value  // for generic JSON handling
-   std.json.stringify(value, .{}, writer)  // NEW format
+#### 1. JSON API
 
-   // Custom type serialization
-   pub fn jsonStringify(self: Address, jws: anytype) !void { ... }
-   pub fn jsonParseFromValue(allocator: std.mem.Allocator, source: std.json.Value, options: std.json.ParseOptions) !Address { ... }
-   ```
+**Parsing JSON**:
+```zig
+// Parse JSON from string/bytes
+const parsed = try std.json.parseFromSlice(std.json.Value, allocator, content, .{});
+defer parsed.deinit();
+const root = parsed.value;  // Access the parsed value
 
-2. **ArrayList Initialization**:
-   ```zig
-   // 0.15.2 pattern
-   var list = std.ArrayList(T).init(allocator);
-   gop.value_ptr.* = .empty;  // Initialize to empty
-   ```
+// Access JSON values
+const methods = root.object.get("methods").?.array;
+const name_str = obj.object.get("name").?.string;
+```
 
-3. **File I/O**:
-   ```zig
-   // 0.15.2 pattern used in generate.zig
-   const file = try std.fs.cwd().openFile(path, .{});
-   const content = try file.readToEndAlloc(allocator, max_size);
-   ```
+**Writing JSON**:
+```zig
+// NEW in 0.15.2: Use Stringify.valueAlloc or write stream
+const json_str = try std.json.Stringify.valueAlloc(allocator, value, .{});
+defer allocator.free(json_str);
+
+// Or use a streaming writer (more efficient for large output):
+var output: std.ArrayListUnmanaged(u8) = .{};
+defer output.deinit(allocator);
+const writer = output.writer(allocator);
+
+try writer.writeAll("const std = @import(\"std\");\n");
+try writer.print("pub const {s} = @This();\n", .{name});
+```
+
+**Custom Type Serialization** (required for JSON-RPC types):
+```zig
+pub fn jsonStringify(self: Address, jws: anytype) !void {
+    try jws.beginArray();
+    try jws.write(self.field);
+    try jws.endArray();
+}
+
+pub fn jsonParseFromValue(allocator: std.mem.Allocator, source: std.json.Value, options: std.json.ParseOptions) !Address {
+    if (source != .array) return error.UnexpectedToken;
+    return Address{ .field = try std.json.innerParseFromValue(T, allocator, source.array.items[0], options) };
+}
+```
+
+#### 2. ArrayList / ArrayListUnmanaged
+
+**Initialization** (common mistake area):
+```zig
+// Managed ArrayList (auto-cleanup)
+var list = std.ArrayList(T).init(allocator);
+defer list.deinit();
+try list.append(item);
+
+// Unmanaged ArrayList (manual memory management - preferred for output buffers)
+var output: std.ArrayListUnmanaged(u8) = .{};
+defer output.deinit(allocator);
+const writer = output.writer(allocator);  // Get a writer
+
+// Initialize to empty in hashmap
+const gop = try map.getOrPut(key);
+if (!gop.found_existing) {
+    gop.value_ptr.* = .empty;  // Initialize ArrayList.Managed as empty
+}
+try gop.value_ptr.append(allocator, item);
+```
+
+**Common Operations**:
+```zig
+try list.append(allocator, item);
+const slice = try list.toOwnedSlice(allocator);  // Caller owns memory
+const items = list.items;  // Borrow current items
+```
+
+#### 3. File I/O
+
+**Reading Files**:
+```zig
+// Open and read file
+const file = try std.fs.cwd().openFile(path, .{});
+defer file.close();
+
+// Read entire file into memory (allocates)
+const content = try file.readToEndAlloc(allocator, max_size);
+defer allocator.free(content);
+
+// Use writeAll to write to file
+try file.writeAll(content);
+```
+
+**File Writers** (requires buffer in 0.15.2):
+```zig
+// WRONG (0.14 style):
+// const writer = file.writer();
+
+// CORRECT (0.15.2 requires buffer):
+var buffer: [4096]u8 = undefined;
+const writer = file.writer(&buffer);
+
+// For in-memory output, use ArrayListUnmanaged:
+var output: std.ArrayListUnmanaged(u8) = .{};
+defer output.deinit(allocator);
+const writer = output.writer(allocator);
+try writer.writeAll("text");
+try writer.print("format: {}", .{value});
+// Then write to file:
+try file.writeAll(output.items);
+```
+
+**Creating Files/Directories**:
+```zig
+// Create directory recursively
+try std.fs.cwd().makePath(dir_path);
+
+// Create file (overwrites if exists)
+const file = try std.fs.cwd().createFile(path, .{});
+defer file.close();
+```
 
 ### When Working with Zig Code
 
 If you encounter compilation errors:
 
 1. **Check the submodule first**: `context/zig` contains Zig 0.15.2 source code
-2. **Read the actual API**: `context/zig/lib/zig/std/{module}.zig`
-3. **Match patterns from existing code**: Look at `tools/generate.zig` for working examples
-4. **Key modules with changes**:
-   - `std.json` - JSON parsing and stringification
-   - `std.Build` - Build system APIs
-   - `std.ArrayList` - Initialization patterns
-   - File I/O - Writer APIs
+2. **Read the actual API**: `context/zig/lib/std/{module}.zig`
+3. **Match patterns from existing code**: `tools/generate.zig` contains working examples
+4. **Common error patterns**:
+   - "no member named 'writer'" on File → Use `file.writer(&buffer)` not `file.writer()`
+   - ArrayList init issues → Use `.empty` for managed lists in hashmaps
+   - JSON stringify errors → Use `std.json.Stringify.valueAlloc()` not old API
 
-### Reference Locations
+### Key Module Locations
 
-- **Standard Library**: `context/zig/lib/zig/std/`
-- **JSON API**: `context/zig/lib/zig/std/json.zig`
-- **Build API**: `context/zig/lib/zig/std/Build.zig`
-- **ArrayList**: `context/zig/lib/zig/std/array_list.zig`
+- **Standard Library**: `context/zig/lib/std/`
+- **JSON**: `context/zig/lib/std/json.zig` + `context/zig/lib/std/json/Stringify.zig`
+- **ArrayList**: `context/zig/lib/std/array_list.zig`
+- **File System**: `context/zig/lib/std/fs.zig` + `context/zig/lib/std/fs/File.zig`
+- **Build System**: `context/zig/lib/std/Build.zig`
 
 ## Build System
 

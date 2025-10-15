@@ -1,189 +1,103 @@
-# Ethereum JSON-RPC Specification
+# Ethereum JSON-RPC Type Generator
 
-This repository contains the Ethereum JSON-RPC specification defined in OpenRPC format.
+Type-safe TypeScript and Zig code generated from the [official Ethereum JSON-RPC specification](https://github.com/ethereum/execution-apis).
 
-## Overview
+## What This Is
 
-The `execution-apis/openrpc.json` file (15,598 lines) is a comprehensive specification of the standard interface for Ethereum clients. It follows the [OpenRPC 1.2.4](https://spec.open-rpc.org/) specification format.
+A code generator that transforms the OpenRPC specification (`execution-apis/openrpc.json`) into:
 
-## File Structure
+- **TypeScript**: Type-safe interfaces with brand types and tree-shakable exports
+- **Zig**: Strongly-typed structs with JSON serialization
+- **Coverage**: All 65 methods across `eth`, `debug`, and `engine` namespaces
 
-The openrpc.json file contains the following top-level structure:
+**Key principle**: The OpenRPC spec is the single source of truth. All code in `src/` is generated and never committed.
 
-```json
-{
-  "openrpc": "1.2.4",
-  "info": { ... },
-  "methods": [ ... ],
-  "components": { ... }
-}
+## Installation
+
+```bash
+npm install @tevm/apis
+# or
+bun add @tevm/apis
 ```
 
-### 1. Info Section
+## Build from Source
 
-Contains metadata about the specification:
+```bash
+# Install dependencies
+bun install
 
-- **Title**: Ethereum JSON-RPC Specification
-- **Description**: A specification of the standard interface for Ethereum clients
-- **License**: CC0-1.0 (Public Domain)
-- **Version**: 0.0.0
+# Generate types from OpenRPC spec and build everything
+zig build generate && zig build
 
-### 2. Methods Array
-
-Contains **65 JSON-RPC methods** organized into 3 namespaces:
-
-#### Debug Namespace (5 methods)
-- `debug_getBadBlocks` - Returns bad blocks seen on the network
-- `debug_getRawBlock` - Returns raw block data
-- `debug_getRawHeader` - Returns raw block header
-- `debug_getRawReceipts` - Returns raw transaction receipts
-- `debug_getRawTransaction` - Returns raw transaction data
-
-#### Engine Namespace (20 methods)
-Engine API methods for consensus layer communication:
-- `engine_exchangeCapabilities`
-- `engine_exchangeTransitionConfigurationV1`
-- `engine_forkchoiceUpdatedV1/V2/V3`
-- `engine_getBlobsV1/V2`
-- `engine_getPayloadBodiesByHashV1`
-- `engine_getPayloadBodiesByRangeV1`
-- `engine_getPayloadV1/V2/V3/V4/V5/V6`
-- `engine_newPayloadV1/V2/V3/V4/V5`
-
-#### Eth Namespace (40 methods)
-Standard Ethereum JSON-RPC methods:
-- **Account Operations**: `eth_accounts`, `eth_getBalance`, `eth_getCode`, `eth_getStorageAt`, `eth_getTransactionCount`
-- **Block Operations**: `eth_blockNumber`, `eth_getBlockByHash`, `eth_getBlockByNumber`, `eth_getBlockReceipts`, `eth_getBlockTransactionCountByHash`, `eth_getBlockTransactionCountByNumber`, `eth_getUncleCountByBlockHash`, `eth_getUncleCountByBlockNumber`
-- **Transaction Operations**: `eth_call`, `eth_createAccessList`, `eth_estimateGas`, `eth_sendRawTransaction`, `eth_sendTransaction`, `eth_sign`, `eth_signTransaction`, `eth_getTransactionByHash`, `eth_getTransactionByBlockHashAndIndex`, `eth_getTransactionByBlockNumberAndIndex`, `eth_getTransactionReceipt`
-- **Filter Operations**: `eth_newFilter`, `eth_newBlockFilter`, `eth_newPendingTransactionFilter`, `eth_getFilterChanges`, `eth_getFilterLogs`, `eth_getLogs`, `eth_uninstallFilter`
-- **Fee Operations**: `eth_gasPrice`, `eth_maxPriorityFeePerGas`, `eth_blobBaseFee`, `eth_feeHistory`
-- **Network Operations**: `eth_chainId`, `eth_coinbase`, `eth_syncing`
-- **Utility Operations**: `eth_getProof`, `eth_simulateV1`
-
-### 3. Method Structure
-
-Each method in the array has the following structure:
-
-```json
-{
-  "name": "method_name",
-  "summary": "Brief description of what the method does",
-  "params": [
-    {
-      "name": "Parameter name",
-      "required": true/false,
-      "schema": {
-        "title": "Schema title",
-        "type": "string|number|object|array",
-        "pattern": "regex pattern for validation",
-        "enum": ["possible", "values"],
-        "anyOf": [/* multiple schema options */]
-      }
-    }
-  ],
-  "result": {
-    "name": "Result name",
-    "schema": {
-      "title": "Result schema title",
-      "type": "string|number|object|array",
-      "properties": { /* object structure */ },
-      "items": { /* array item structure */ }
-    }
-  },
-  "examples": [
-    {
-      "name": "Example name",
-      "params": [/* example parameter values */],
-      "result": {
-        "name": "Result name",
-        "value": "example result value"
-      }
-    }
-  ]
-}
+# Or step by step:
+zig build generate    # Generate type definitions
+zig build build-ts    # Build TypeScript only
+zig build test        # Run all tests (Zig + TypeScript)
+zig build clean       # Clean generated code (preserves src/types/)
 ```
 
-### 4. Common Data Types
+## Generated Structure
 
-The specification defines strict data types with regex patterns:
+```
+src/
+├── types/              # Hand-written core types (Address, Hash, Quantity, BlockTag, BlockSpec)
+├── eth/                # 40 methods: getBalance, call, sendTransaction, etc.
+├── debug/              # 5 methods: getBadBlocks, getRawBlock, etc.
+├── engine/             # 20 methods: newPayload, forkchoiceUpdated, etc.
+└── JsonRpc.{zig,ts}    # Root namespace combinators
+```
 
-- **Address**: `^0x[0-9a-fA-F]{40}$` - 20-byte hex string
-- **Hash**: `^0x[0-9a-f]{64}$` - 32-byte hex string
-- **Hex Integer**: `^0x(0|[1-9a-f][0-9a-f]*)$` - Hex-encoded integer
-- **Logs Bloom**: `^0x[0-9a-f]{512}$` - 256-byte bloom filter
-- **Block Tags**: `earliest`, `finalized`, `safe`, `latest`, `pending`
+Each method generates:
+- `method_name.json` - Stripped OpenRPC spec
+- `method_name.zig` - Zig Params/Result structs
+- `method_name.ts` - TypeScript interfaces
 
-### 5. Block Parameters
+## Type System
 
-Many methods accept flexible block specifications:
+All Ethereum types use strict validation patterns:
 
-- **Block Number**: Hex-encoded block number
-- **Block Tag**: Named tags (earliest, finalized, safe, latest, pending)
-- **Block Hash**: 32-byte block hash
-
-## Components Section
-
-The `components` section is currently empty (`[]`), indicating all schemas are defined inline within the method definitions.
+- **Address**: `^0x[0-9a-fA-F]{40}$` (20 bytes)
+- **Hash**: `^0x[0-9a-f]{64}$` (32 bytes)
+- **Quantity**: `^0x(0|[1-9a-f][0-9a-f]*)$` (u256, no leading zeros)
+- **BlockTag**: `earliest` | `finalized` | `safe` | `latest` | `pending`
+- **BlockSpec**: Union of Quantity | BlockTag | Hash
 
 ## Usage
 
-This OpenRPC specification can be used to:
+### TypeScript
 
-1. Generate client libraries for multiple programming languages
-2. Generate interactive API documentation
-3. Validate JSON-RPC requests and responses
-4. Generate mock servers for testing
-5. Create type definitions for type-safe development
+```typescript
+// Import specific method types
+import { eth_getBalance, EthMethod } from '@tevm/apis'
+import type { Address, Quantity } from '@tevm/apis'
 
-## Example Method: eth_getBalance
+// Type-safe parameters and results
+type Params = typeof eth_getBalance.Params
+type Result = typeof eth_getBalance.Result
 
-```json
-{
-  "name": "eth_getBalance",
-  "summary": "Returns the balance of the account of given address.",
-  "params": [
-    {
-      "name": "Address",
-      "required": true,
-      "schema": {
-        "type": "string",
-        "pattern": "^0x[0-9a-fA-F]{40}$"
-      }
-    },
-    {
-      "name": "Block",
-      "required": true,
-      "schema": {
-        "anyOf": [
-          {"type": "string", "pattern": "^0x(0|[1-9a-f][0-9a-f]*)$"},
-          {"type": "string", "enum": ["earliest", "finalized", "safe", "latest", "pending"]},
-          {"type": "string", "pattern": "^0x[0-9a-f]{64}$"}
-        ]
-      }
-    }
-  ],
-  "result": {
-    "schema": {
-      "type": "string",
-      "pattern": "^0x(0|[1-9a-f][0-9a-f]*)$"
-    }
-  }
-}
+// Use brand types for compile-time safety
+const address: Address = '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0' as Address
+const balance: Quantity = '0x1a' as Quantity
+
+// Method enums (tree-shakable)
+console.log(EthMethod.eth_getBalance) // 'eth_getBalance'
 ```
 
-## Statistics
+### Zig
 
-- **Total Lines**: 15,598
-- **OpenRPC Version**: 1.2.4
-- **Total Methods**: 65
-  - Debug: 5 methods
-  - Engine: 20 methods
-  - Eth: 40 methods
+```zig
+const specs = @import("specs");
+const eth = specs.eth;
 
-## License
-
-This specification is licensed under CC0-1.0 (Public Domain).
+// Type-safe structs
+const params = eth.getBalance.Params{
+    .address = .{ .bytes = address_bytes },
+    .block = .{ .tag = .latest },
+};
+```
 
 ## Source
 
-The specification is maintained as a git submodule in the `execution-apis` directory.
+- **Spec**: Git submodule at `execution-apis/` (OpenRPC 1.2.4)
+- **Generator**: `tools/generate.zig` (900+ lines)
+- **License**: CC0-1.0 (Public Domain)
