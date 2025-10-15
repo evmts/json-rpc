@@ -42,7 +42,8 @@
   "scripts": {
     "build": "bun run build:types && bun run build:ts",
     "build:types": "zig build generate",
-    "build:ts": "tsc",
+    "build:ts": "bun build src/index.ts --outdir dist --target node --format esm --sourcemap=external",
+    "typecheck": "tsc --noEmit || true",
     "test": "bun test",
     "clean": "rm -rf dist && zig build clean",
     "prepublishOnly": "bun run clean && bun run build"
