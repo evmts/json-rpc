@@ -1,0 +1,56 @@
+# Source files (TypeScript source already in package via files field)
+*.test.ts
+*.test.js
+
+# Build tools and configuration
+build.zig
+build.zig.zon
+tools/
+context/
+execution-apis/
+
+# Zig source files (for Zig-only consumption, not npm)
+*.zig
+!build.zig
+
+# Development files
+.github/
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Test and coverage
+coverage/
+.nyc_output/
+
+# CI/CD
+.travis.yml
+.gitlab-ci.yml
+circle.yml
+
+# Documentation (README and LICENSE are included by default)
+docs/
+CLAUDE.md
+
+# Git
+.git/
+.gitignore
+.gitattributes
+.gitmodules
+
+# Dependencies
+node_modules/
+bun.lockb
+package-lock.json
+yarn.lock
+
+# Build artifacts
+zig-out/
+zig-cache/
+.zig-cache/
+
+# OS files
+.DS_Store
+Thumbs.db

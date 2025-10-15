@@ -7,6 +7,11 @@ zig-cache/
 build/
 dist/
 
+# Node.js / Bun
+node_modules/
+.bun/
+bun.lockb
+
 # Dependencies cache
 .gyp/
 
