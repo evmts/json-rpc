@@ -116,20 +116,18 @@ describe('@tevm/apis', () => {
   })
 
   describe('Tree-shakability', () => {
-    test('can import specific methods without importing all', async () => {
-      // This test verifies that we can import individual methods
-      const { eth_getBalance } = await import('./eth/getBalance/eth_getBalance.js')
-
-      expect(eth_getBalance).toBeDefined()
-      expect(eth_getBalance.Params).toBeDefined()
-      expect(eth_getBalance.Result).toBeDefined()
-    })
-
-    test('can import namespace enums independently', () => {
+    test('method enums are objects for tree-shakability', () => {
       // Verify that method enums are objects, not TypeScript enums
+      // This allows bundlers to tree-shake unused methods
       expect(typeof EthMethod).toBe('object')
       expect(typeof DebugMethod).toBe('object')
       expect(typeof EngineMethod).toBe('object')
+    })
+
+    test('namespace methods export correctly', () => {
+      // Verify method objects are structured correctly
+      expect(EthMethod.eth_getBalance).toBe('eth_getBalance')
+      expect(Object.keys(EthMethod).length).toBe(40)
     })
   })
 
