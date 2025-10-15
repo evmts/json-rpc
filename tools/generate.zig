@@ -260,7 +260,7 @@ fn generateParamsStruct(allocator: std.mem.Allocator, params: std.json.Array, me
 
     // If params is empty, handle unused parameter warnings
     if (params.items.len == 0) {
-        try writer.writeAll("\n    pub fn jsonStringify(self: Params, jws: anytype) !void {\n");
+        try writer.writeAll("\n    pub fn jsonStringify(self: Params, jws: *std.json.Stringify) !void {\n");
         try writer.writeAll("        _ = self;\n");
         try writer.writeAll("        try jws.write(.{});\n");
         try writer.writeAll("    }\n\n");
@@ -271,7 +271,7 @@ fn generateParamsStruct(allocator: std.mem.Allocator, params: std.json.Array, me
         try writer.writeAll("        return Params{};\n");
         try writer.writeAll("    }\n");
     } else {
-        try writer.writeAll("\n    pub fn jsonStringify(self: Params, jws: anytype) !void {\n");
+        try writer.writeAll("\n    pub fn jsonStringify(self: Params, jws: *std.json.Stringify) !void {\n");
         try writer.writeAll("        try jws.beginArray();\n");
 
         for (params.items, 0..) |_, i| {
@@ -336,7 +336,7 @@ fn generateResultStruct(allocator: std.mem.Allocator, result: std.json.Value, me
     try writer.writeAll(result_type);
     try writer.writeAll(",\n\n");
 
-    try writer.writeAll("    pub fn jsonStringify(self: Result, jws: anytype) !void {\n");
+    try writer.writeAll("    pub fn jsonStringify(self: Result, jws: *std.json.Stringify) !void {\n");
     try writer.writeAll("        try jws.write(self.value);\n");
     try writer.writeAll("    }\n\n");
 
