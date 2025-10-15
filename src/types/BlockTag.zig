@@ -33,7 +33,7 @@ pub const BlockTag = enum {
     }
 
     /// Serialize to JSON using Zig 0.15 API
-    pub fn jsonStringify(self: BlockTag, jws: anytype) !void {
+    pub fn jsonStringify(self: BlockTag, jws: *std.json.Stringify) !void {
         try jws.write(self.toString());
     }
 

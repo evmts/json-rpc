@@ -49,7 +49,7 @@ fn hexCharToNibble(c: u8) !u4 {
 }
 
 /// Serialize to JSON using Zig 0.15 API
-pub fn jsonStringify(self: Hash, jws: anytype) !void {
+pub fn jsonStringify(self: Hash, jws: *std.json.Stringify) !void {
     var buf: [66]u8 = undefined;
     buf[0] = '0';
     buf[1] = 'x';

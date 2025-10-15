@@ -1,7 +1,7 @@
 const std = @import("std");
 const Quantity = @import("Quantity.zig");
 const Hash = @import("Hash.zig");
-const BlockTag = @import("BlockTag.zig");
+const BlockTag = @import("BlockTag.zig").BlockTag;
 
 /// Block specification - can be a block number, tag, or hash
 pub const BlockSpec = union(enum) {
@@ -39,7 +39,7 @@ pub const BlockSpec = union(enum) {
     }
 
     /// Serialize to JSON using Zig 0.15 API
-    pub fn jsonStringify(self: BlockSpec, jws: anytype) !void {
+    pub fn jsonStringify(self: BlockSpec, jws: *std.json.Stringify) !void {
         switch (self) {
             .number => |qty| try qty.jsonStringify(jws),
             .tag => |t| try t.jsonStringify(jws),

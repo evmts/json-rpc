@@ -61,7 +61,7 @@ fn hexCharToNibble(c: u8) !u8 {
 }
 
 /// Serialize to JSON using Zig 0.15 API
-pub fn jsonStringify(self: Quantity, jws: anytype) !void {
+pub fn jsonStringify(self: Quantity, jws: *std.json.Stringify) !void {
     if (self.value == 0) {
         try jws.write("0x0");
         return;
