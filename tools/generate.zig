@@ -86,10 +86,10 @@ pub fn main() !void {
             const json_file = try std.fs.cwd().createFile(json_path, .{});
             defer json_file.close();
 
-            var out_buf: [1024 * 1024]u8 = undefined;
-            var fbs = std.io.fixedBufferStream(&out_buf);
-            try std.json.stringify(method, .{ .whitespace = .minified }, fbs.writer());
-            try json_file.writeAll(fbs.getWritten());
+            // Write JSON by formatting the method value using Zig 0.15 API
+            const json_str = try std.json.Stringify.valueAlloc(allocator, method, .{});
+            defer allocator.free(json_str);
+            try json_file.writeAll(json_str);
 
             // Write Zig struct file
             const struct_name = try toPascalCase(allocator, method_name);
