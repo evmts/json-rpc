@@ -1,0 +1,6 @@
+[submodule "execution-apis"]
+	path = execution-apis
+	url = https://github.com/ethereum/execution-apis
+[submodule "context/zig"]
+	path = context/zig
+	url = git@github.com:ziglang/zig.git
