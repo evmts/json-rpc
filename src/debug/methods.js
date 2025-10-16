@@ -14,6 +14,8 @@ import * as debug_getRawTransaction from './getRawTransaction/debug_getRawTransa
 
 /**
  * Method name enum - provides string literals for each method
+ *
+ * @typedef {(typeof DebugMethod)[keyof typeof DebugMethod]} DebugMethod
  */
 export const DebugMethod = {
   debug_getBadBlocks: 'debug_getBadBlocks',
@@ -21,33 +23,7 @@ export const DebugMethod = {
   debug_getRawHeader: 'debug_getRawHeader',
   debug_getRawReceipts: 'debug_getRawReceipts',
   debug_getRawTransaction: 'debug_getRawTransaction',
-} as const
-
-/**
- * Type-safe method name union
- */
-export type DebugMethod = typeof DebugMethod[keyof typeof DebugMethod]
-
-/**
- * Type mapping from method name to method module
- */
-export interface DebugMethodMap {
-  'debug_getBadBlocks': typeof debug_getBadBlocks
-  'debug_getRawBlock': typeof debug_getRawBlock
-  'debug_getRawHeader': typeof debug_getRawHeader
-  'debug_getRawReceipts': typeof debug_getRawReceipts
-  'debug_getRawTransaction': typeof debug_getRawTransaction
 }
-
-/**
- * Helper type to extract Params type from method name
- */
-export type DebugParams<M extends DebugMethod> = DebugMethodMap[M]['Params']
-
-/**
- * Helper type to extract Result type from method name
- */
-export type DebugResult<M extends DebugMethod> = DebugMethodMap[M]['Result']
 
 // Re-export individual method modules for direct access (tree-shakable)
 export {

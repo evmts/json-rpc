@@ -1,10 +1,14 @@
-import type {
-  Address,
-  Hash,
-  Quantity,
-  BlockTag,
-  BlockSpec,
-} from '../../types/index.js'
+/**
+ * @fileoverview debug_getRawBlock JSON-RPC method
+ */
+
+/**
+ * @typedef {import('../../types/index.js').Address} Address
+ * @typedef {import('../../types/index.js').Hash} Hash
+ * @typedef {import('../../types/index.js').Quantity} Quantity
+ * @typedef {import('../../types/index.js').BlockTag} BlockTag
+ * @typedef {import('../../types/index.js').BlockSpec} BlockSpec
+ */
 
 /**
  * Returns an RLP-encoded block.
@@ -17,19 +21,20 @@ import type {
  */
 
 /** The JSON-RPC method name */
-export const method = 'debug_getRawBlock' as const
+export const method = 'debug_getRawBlock'
 
 /**
  * Parameters for `debug_getRawBlock`
+ *
+ * @typedef {Object} Params
+ * @property {Quantity} block - Block number or tag
  */
-export interface Params {
-  /** Block number or tag */
-  block: Quantity
-}
 
+export {}
 /**
  * Result for `debug_getRawBlock`
  *
  * hex encoded bytes
+ *
+ * @typedef {Quantity} Result
  */
-export type Result = Quantity

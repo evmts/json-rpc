@@ -1,10 +1,14 @@
-import type {
-  Address,
-  Hash,
-  Quantity,
-  BlockTag,
-  BlockSpec,
-} from '../../types/index.js'
+/**
+ * @fileoverview debug_getRawTransaction JSON-RPC method
+ */
+
+/**
+ * @typedef {import('../../types/index.js').Address} Address
+ * @typedef {import('../../types/index.js').Hash} Hash
+ * @typedef {import('../../types/index.js').Quantity} Quantity
+ * @typedef {import('../../types/index.js').BlockTag} BlockTag
+ * @typedef {import('../../types/index.js').BlockSpec} BlockSpec
+ */
 
 /**
  * Returns an array of EIP-2718 binary-encoded transactions.
@@ -17,19 +21,20 @@ import type {
  */
 
 /** The JSON-RPC method name */
-export const method = 'debug_getRawTransaction' as const
+export const method = 'debug_getRawTransaction'
 
 /**
  * Parameters for `debug_getRawTransaction`
+ *
+ * @typedef {Object} Params
+ * @property {Hash} transaction hash - 32 byte hex value
  */
-export interface Params {
-  /** 32 byte hex value */
-  transaction hash: Hash
-}
 
+export {}
 /**
  * Result for `debug_getRawTransaction`
  *
  * hex encoded bytes
+ *
+ * @typedef {Quantity} Result
  */
-export type Result = Quantity
