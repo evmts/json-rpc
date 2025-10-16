@@ -50,9 +50,10 @@ export class JsonRpcError extends Error {
    * @param {TName} name - Strongly-typed error name
    * @param {string} message - Human-readable error message
    * @param {TCode} code - Strongly-typed JSON-RPC error code
+   * @param {Error} [cause] - Optional underlying error that caused this error
    */
-  constructor(name, message, code) {
-    super(message)
+  constructor(name, message, code, cause) {
+    super(message, { cause })
     /** @type {TName} */
     this.name = name
     /** @type {TCode} */
@@ -131,84 +132,96 @@ export class JsonRpcError extends Error {
 
 /**
  * @param {string} message
+ * @param {Error} [cause] - Optional underlying error
  * @returns {ParseError}
  */
-export const ParseError = (message) =>
-  new JsonRpcError('ParseError', message, JsonRpcErrorCode.PARSE_ERROR)
+export const ParseError = (message, cause) =>
+  new JsonRpcError('ParseError', message, JsonRpcErrorCode.PARSE_ERROR, cause)
 
 /**
  * @param {string} message
+ * @param {Error} [cause] - Optional underlying error
  * @returns {InvalidRequestError}
  */
-export const InvalidRequestError = (message) =>
-  new JsonRpcError('InvalidRequestError', message, JsonRpcErrorCode.INVALID_REQUEST)
+export const InvalidRequestError = (message, cause) =>
+  new JsonRpcError('InvalidRequestError', message, JsonRpcErrorCode.INVALID_REQUEST, cause)
 
 /**
  * @param {string} message
+ * @param {Error} [cause] - Optional underlying error
  * @returns {MethodNotFoundError}
  */
-export const MethodNotFoundError = (message) =>
-  new JsonRpcError('MethodNotFoundError', message, JsonRpcErrorCode.METHOD_NOT_FOUND)
+export const MethodNotFoundError = (message, cause) =>
+  new JsonRpcError('MethodNotFoundError', message, JsonRpcErrorCode.METHOD_NOT_FOUND, cause)
 
 /**
  * @param {string} message
+ * @param {Error} [cause] - Optional underlying error
  * @returns {InvalidParamsError}
  */
-export const InvalidParamsError = (message) =>
-  new JsonRpcError('InvalidParamsError', message, JsonRpcErrorCode.INVALID_PARAMS)
+export const InvalidParamsError = (message, cause) =>
+  new JsonRpcError('InvalidParamsError', message, JsonRpcErrorCode.INVALID_PARAMS, cause)
 
 /**
  * @param {string} message
+ * @param {Error} [cause] - Optional underlying error
  * @returns {InternalError}
  */
-export const InternalError = (message) =>
-  new JsonRpcError('InternalError', message, JsonRpcErrorCode.INTERNAL_ERROR)
+export const InternalError = (message, cause) =>
+  new JsonRpcError('InternalError', message, JsonRpcErrorCode.INTERNAL_ERROR, cause)
 
 /**
  * @param {string} message
+ * @param {Error} [cause] - Optional underlying error
  * @returns {InvalidInputError}
  */
-export const InvalidInputError = (message) =>
-  new JsonRpcError('InvalidInputError', message, JsonRpcErrorCode.INVALID_INPUT)
+export const InvalidInputError = (message, cause) =>
+  new JsonRpcError('InvalidInputError', message, JsonRpcErrorCode.INVALID_INPUT, cause)
 
 /**
  * @param {string} message
+ * @param {Error} [cause] - Optional underlying error
  * @returns {ResourceNotFoundError}
  */
-export const ResourceNotFoundError = (message) =>
-  new JsonRpcError('ResourceNotFoundError', message, JsonRpcErrorCode.RESOURCE_NOT_FOUND)
+export const ResourceNotFoundError = (message, cause) =>
+  new JsonRpcError('ResourceNotFoundError', message, JsonRpcErrorCode.RESOURCE_NOT_FOUND, cause)
 
 /**
  * @param {string} message
+ * @param {Error} [cause] - Optional underlying error
  * @returns {ResourceUnavailableError}
  */
-export const ResourceUnavailableError = (message) =>
-  new JsonRpcError('ResourceUnavailableError', message, JsonRpcErrorCode.RESOURCE_UNAVAILABLE)
+export const ResourceUnavailableError = (message, cause) =>
+  new JsonRpcError('ResourceUnavailableError', message, JsonRpcErrorCode.RESOURCE_UNAVAILABLE, cause)
 
 /**
  * @param {string} message
+ * @param {Error} [cause] - Optional underlying error
  * @returns {TransactionRejectedError}
  */
-export const TransactionRejectedError = (message) =>
-  new JsonRpcError('TransactionRejectedError', message, JsonRpcErrorCode.TRANSACTION_REJECTED)
+export const TransactionRejectedError = (message, cause) =>
+  new JsonRpcError('TransactionRejectedError', message, JsonRpcErrorCode.TRANSACTION_REJECTED, cause)
 
 /**
  * @param {string} message
+ * @param {Error} [cause] - Optional underlying error
  * @returns {MethodNotSupportedError}
  */
-export const MethodNotSupportedError = (message) =>
-  new JsonRpcError('MethodNotSupportedError', message, JsonRpcErrorCode.METHOD_NOT_SUPPORTED)
+export const MethodNotSupportedError = (message, cause) =>
+  new JsonRpcError('MethodNotSupportedError', message, JsonRpcErrorCode.METHOD_NOT_SUPPORTED, cause)
 
 /**
  * @param {string} message
+ * @param {Error} [cause] - Optional underlying error
  * @returns {LimitExceededError}
  */
-export const LimitExceededError = (message) =>
-  new JsonRpcError('LimitExceededError', message, JsonRpcErrorCode.LIMIT_EXCEEDED)
+export const LimitExceededError = (message, cause) =>
+  new JsonRpcError('LimitExceededError', message, JsonRpcErrorCode.LIMIT_EXCEEDED, cause)
 
 /**
  * @param {string} message
+ * @param {Error} [cause] - Optional underlying error
  * @returns {VersionNotSupportedError}
  */
-export const VersionNotSupportedError = (message) =>
-  new JsonRpcError('VersionNotSupportedError', message, JsonRpcErrorCode.VERSION_NOT_SUPPORTED)
+export const VersionNotSupportedError = (message, cause) =>
+  new JsonRpcError('VersionNotSupportedError', message, JsonRpcErrorCode.VERSION_NOT_SUPPORTED, cause)
