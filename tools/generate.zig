@@ -103,24 +103,24 @@ pub fn main() !void {
 
             try generateZigStruct(allocator, method, struct_name, method_name, zig_file);
 
-            // Write TypeScript file
-            const ts_path = try std.fmt.allocPrint(allocator, "src/{s}/{s}/{s}.ts", .{ namespace, method_part, method_name });
-            defer allocator.free(ts_path);
+            // Write JavaScript file with JSDoc
+            const js_path = try std.fmt.allocPrint(allocator, "src/{s}/{s}/{s}.js", .{ namespace, method_part, method_name });
+            defer allocator.free(js_path);
 
-            const ts_file = try std.fs.cwd().createFile(ts_path, .{});
-            defer ts_file.close();
+            const js_file = try std.fs.cwd().createFile(js_path, .{});
+            defer js_file.close();
 
-            try generateTypeScriptInterface(allocator, method, method_name, ts_file);
+            try generateJavaScriptWithJSDoc(allocator, method, method_name, js_file);
 
-            std.debug.print("Created: {s}, {s}, and {s}\n", .{ json_path, zig_path, ts_path });
+            std.debug.print("Created: {s}, {s}, and {s}\n", .{ json_path, zig_path, js_path });
         }
 
-        // Generate methods.ts and methods.zig for this namespace
-        try generateNamespaceMethodsTS(allocator, namespace, method_list.items);
+        // Generate methods.js and methods.zig for this namespace
+        try generateNamespaceMethodsJS(allocator, namespace, method_list.items);
         try generateNamespaceMethodsZig(allocator, namespace, method_list.items);
     }
 
-    // Generate root JsonRpc.ts and JsonRpc.zig
+    // Generate root JsonRpc.js and JsonRpc.zig
     var namespace_list: std.ArrayList([]const u8) = .empty;
     defer namespace_list.deinit(allocator);
 
@@ -129,7 +129,7 @@ pub fn main() !void {
         try namespace_list.append(allocator, ns.*);
     }
 
-    try generateRootJsonRpcTS(allocator, namespace_list.items);
+    try generateRootJsonRpcJS(allocator, namespace_list.items);
     try generateRootJsonRpcZig(allocator, namespace_list.items);
 
     std.debug.print("\nDone! Processed {d} methods across {d} namespaces.\n", .{ methods_array.items.len, namespaces.count() });
@@ -419,24 +419,31 @@ fn writeJsonValue(value: std.json.Value, writer: anytype) !void {
     }
 }
 
-fn generateTypeScriptInterface(allocator: std.mem.Allocator, method: std.json.Value, method_name: []const u8, file: std.fs.File) !void {
+fn generateJavaScriptWithJSDoc(allocator: std.mem.Allocator, method: std.json.Value, method_name: []const u8, file: std.fs.File) !void {
     var output: std.ArrayListUnmanaged(u8) = .{};
     defer output.deinit(allocator);
     const writer = output.writer(allocator);
 
-    // Write imports
-    try writer.writeAll("import type {\n");
-    try writer.writeAll("  Address,\n");
-    try writer.writeAll("  Hash,\n");
-    try writer.writeAll("  Quantity,\n");
-    try writer.writeAll("  BlockTag,\n");
-    try writer.writeAll("  BlockSpec,\n");
-    try writer.writeAll("} from '../../types/index.js'\n\n");
+    // Write file overview
+    try writer.writeAll("/**\n");
+    try writer.writeAll(" * @fileoverview ");
+    try writer.writeAll(method_name);
+    try writer.writeAll(" JSON-RPC method\n");
+    try writer.writeAll(" */\n\n");
+
+    // Write imports as JSDoc typedefs
+    try writer.writeAll("/**\n");
+    try writer.writeAll(" * @typedef {import('../../types/index.js').Address} Address\n");
+    try writer.writeAll(" * @typedef {import('../../types/index.js').Hash} Hash\n");
+    try writer.writeAll(" * @typedef {import('../../types/index.js').Quantity} Quantity\n");
+    try writer.writeAll(" * @typedef {import('../../types/index.js').BlockTag} BlockTag\n");
+    try writer.writeAll(" * @typedef {import('../../types/index.js').BlockSpec} BlockSpec\n");
+    try writer.writeAll(" */\n\n");
 
     // Write summary as JSDoc comment
+    try writer.writeAll("/**\n");
     if (method.object.get("summary")) |summary| {
         if (summary == .string) {
-            try writer.writeAll("/**\n");
             try writer.writeAll(" * ");
             try writer.writeAll(summary.string);
             try writer.writeAll("\n");
@@ -483,66 +490,62 @@ fn generateTypeScriptInterface(allocator: std.mem.Allocator, method: std.json.Va
     try writer.writeAll("/** The JSON-RPC method name */\n");
     try writer.writeAll("export const method = '");
     try writer.writeAll(method_name);
-    try writer.writeAll("' as const\n\n");
+    try writer.writeAll("'\n\n");
 
-    // Generate Params interface
+    // Generate Params JSDoc typedef
     if (method.object.get("params")) |params| {
         if (params == .array) {
-            try generateTypeScriptParams(allocator, params.array, method_name, writer.any());
+            try generateJavaScriptParams(allocator, params.array, method_name, writer.any());
         }
     }
 
-    // Generate Result interface
+    // Generate Result JSDoc typedef
     if (method.object.get("result")) |result| {
-        try generateTypeScriptResult(allocator, result, method_name, writer.any());
+        try generateJavaScriptResult(allocator, result, method_name, writer.any());
     }
 
     // Write accumulated output to file
     try file.writeAll(output.items);
 }
 
-fn generateTypeScriptParams(allocator: std.mem.Allocator, params: std.json.Array, method_name: []const u8, writer: anytype) !void {
+fn generateJavaScriptParams(allocator: std.mem.Allocator, params: std.json.Array, method_name: []const u8, writer: anytype) !void {
     try writer.writeAll("/**\n");
     try writer.writeAll(" * Parameters for `");
     try writer.writeAll(method_name);
     try writer.writeAll("`\n");
-    try writer.writeAll(" */\n");
-    try writer.writeAll("export interface Params {\n");
+    try writer.writeAll(" *\n");
+    try writer.writeAll(" * @typedef {Object} Params\n");
 
-    for (params.items, 0..) |param, i| {
+    for (params.items) |param| {
         const param_name = param.object.get("name").?.string;
         const schema = param.object.get("schema").?;
-
-        // Write JSDoc for field
-        if (schema.object.get("title")) |title| {
-            try writer.writeAll("  /** ");
-            try writer.writeAll(title.string);
-            try writer.writeAll(" */\n");
-        }
 
         const field_name = try toSnakeCase(allocator, param_name);
         defer allocator.free(field_name);
 
-        const field_type = try inferTypeScriptType(schema);
-        try writer.writeAll("  ");
-        try writer.writeAll(field_name);
-        try writer.writeAll(": ");
+        const field_type = try inferJavaScriptType(schema);
+        try writer.writeAll(" * @property {");
         try writer.writeAll(field_type);
-        try writer.writeAll("\n");
+        try writer.writeAll("} ");
+        try writer.writeAll(field_name);
 
-        if (i < params.items.len - 1) {
-            try writer.writeAll("\n");
+        // Add description if available
+        if (schema.object.get("title")) |title| {
+            try writer.writeAll(" - ");
+            try writer.writeAll(title.string);
         }
+        try writer.writeAll("\n");
     }
 
-    try writer.writeAll("}\n\n");
+    try writer.writeAll(" */\n\n");
+    try writer.writeAll("export {}\n");
 }
 
-fn generateTypeScriptResult(allocator: std.mem.Allocator, result: std.json.Value, method_name: []const u8, writer: anytype) !void {
+fn generateJavaScriptResult(allocator: std.mem.Allocator, result: std.json.Value, method_name: []const u8, writer: anytype) !void {
     _ = allocator;
 
     const schema = result.object.get("schema").?;
-    const result_type = try inferTypeScriptType(schema);
+    const result_type = try inferJavaScriptType(schema);
 
     try writer.writeAll("/**\n");
     try writer.writeAll(" * Result for `");
@@ -556,13 +559,14 @@ fn generateTypeScriptResult(allocator: std.mem.Allocator, result: std.json.Value
         try writer.writeAll("\n");
     }
 
-    try writer.writeAll(" */\n");
-    try writer.writeAll("export type Result = ");
+    try writer.writeAll(" *\n");
+    try writer.writeAll(" * @typedef {");
     try writer.writeAll(result_type);
-    try writer.writeAll("\n");
+    try writer.writeAll("} Result\n");
+    try writer.writeAll(" */\n");
 }
 
-fn inferTypeScriptType(schema: std.json.Value) ![]const u8 {
+fn inferJavaScriptType(schema: std.json.Value) ![]const u8 {
     // Check for anyOf (union types like BlockSpec)
     if (schema.object.get("anyOf")) |_| {
         if (schema.object.get("title")) |title| {
@@ -603,8 +607,8 @@ fn inferTypeScriptType(schema: std.json.Value) ![]const u8 {
     return "Quantity";
 }
 
-fn generateNamespaceMethodsTS(allocator: std.mem.Allocator, namespace: []const u8, methods: []const MethodInfo) !void {
-    const path = try std.fmt.allocPrint(allocator, "src/{s}/methods.ts", .{namespace});
+fn generateNamespaceMethodsJS(allocator: std.mem.Allocator, namespace: []const u8, methods: []const MethodInfo) !void {
+    const path = try std.fmt.allocPrint(allocator, "src/{s}/methods.js", .{namespace});
     defer allocator.free(path);
 
     const file = try std.fs.cwd().createFile(path, .{});
@@ -636,55 +640,26 @@ fn generateNamespaceMethodsTS(allocator: std.mem.Allocator, namespace: []const u
     }
     try writer.writeAll("\n");
 
-    // Generate enum
+    // Generate enum (object-as-const pattern)
     try writer.print(
         \\/**
         \\ * Method name enum - provides string literals for each method
+        \\ *
+        \\ * @typedef {{(typeof {s}Method)[keyof typeof {s}Method]}} {s}Method
         \\ */
         \\export const {s}Method = {{
         \\
-    , .{ns_pascal});
+    , .{ ns_pascal, ns_pascal, ns_pascal, ns_pascal });
 
     for (methods) |m| {
         try writer.print("  {s}: '{s}',\n", .{ m.name, m.name });
     }
 
-    try writer.print(
-        \\}} as const
-        \\
-        \\/**
-        \\ * Type-safe method name union
-        \\ */
-        \\export type {s}Method = typeof {s}Method[keyof typeof {s}Method]
-        \\
-        \\/**
-        \\ * Type mapping from method name to method module
-        \\ */
-        \\export interface {s}MethodMap {{
-        \\
-    , .{ ns_pascal, ns_pascal, ns_pascal, ns_pascal });
+    try writer.writeAll("}\n\n");
 
-    for (methods) |m| {
-        try writer.print("  '{s}': typeof {s}\n", .{ m.name, m.name });
-    }
-
-    try writer.print(
-        \\}}
-        \\
-        \\/**
-        \\ * Helper type to extract Params type from method name
-        \\ */
-        \\export type {s}Params<M extends {s}Method> = {s}MethodMap[M]['Params']
-        \\
-        \\/**
-        \\ * Helper type to extract Result type from method name
-        \\ */
-        \\export type {s}Result<M extends {s}Method> = {s}MethodMap[M]['Result']
-        \\
-        \\// Re-export individual method modules for direct access (tree-shakable)
-        \\export {{
-        \\
-    , .{ ns_pascal, ns_pascal, ns_pascal, ns_pascal, ns_pascal, ns_pascal });
+    // Re-export individual method modules for direct access (tree-shakable)
+    try writer.writeAll("// Re-export individual method modules for direct access (tree-shakable)\n");
+    try writer.writeAll("export {\n");
 
     for (methods, 0..) |m, i| {
         try writer.print("  {s}", .{m.name});
@@ -777,8 +752,8 @@ fn generateNamespaceMethodsZig(allocator: std.mem.Allocator, namespace: []const 
     std.debug.print("Generated {s}\n", .{path});
 }
 
-fn generateRootJsonRpcTS(allocator: std.mem.Allocator, namespaces: []const []const u8) !void {
-    const path = "src/JsonRpc.ts";
+fn generateRootJsonRpcJS(allocator: std.mem.Allocator, namespaces: []const []const u8) !void {
+    const path = "src/JsonRpc.js";
     const file = try std.fs.cwd().createFile(path, .{});
     defer file.close();
 
@@ -797,55 +772,38 @@ fn generateRootJsonRpcTS(allocator: std.mem.Allocator, namespaces: []const []con
         \\
     );
 
-    // Import namespace methods
+    // Re-export namespace methods
     for (namespaces) |ns| {
-        const ns_pascal = try toPascalCase(allocator, ns);
-        defer allocator.free(ns_pascal);
-        try writer.print("import type {{ {s}Method, {s}Params, {s}Result, {s}MethodMap }} from './{s}/methods.js'\n", .{ ns_pascal, ns_pascal, ns_pascal, ns_pascal, ns });
         try writer.print("export * from './{s}/methods.js'\n", .{ns});
     }
 
     try writer.writeAll("\n// Export primitive types separately\nexport * as types from './types/index.js'\n\n");
 
-    // Generate union type for all methods
-    try writer.writeAll("/**\n * Union of all JSON-RPC method names\n */\nexport type JsonRpcMethod = ");
+    // Generate JSDoc typedefs for type imports
+    try writer.writeAll("/**\n");
+    for (namespaces) |ns| {
+        const ns_pascal = try toPascalCase(allocator, ns);
+        defer allocator.free(ns_pascal);
+        try writer.print(" * @typedef {{import('./{s}/methods.js').{s}Method}} {s}Method\n", .{ ns, ns_pascal, ns_pascal });
+    }
+    try writer.writeAll(" */\n\n");
+
+    // Generate union type for all methods as JSDoc typedef
+    try writer.writeAll("/**\n");
+    try writer.writeAll(" * Union of all JSON-RPC method names\n");
+    try writer.writeAll(" *\n");
+    try writer.writeAll(" * @typedef {");
     for (namespaces, 0..) |ns, i| {
         const ns_pascal = try toPascalCase(allocator, ns);
         defer allocator.free(ns_pascal);
         try writer.print("{s}Method", .{ns_pascal});
-        if (i < namespaces.len - 1) try writer.writeAll(" | ") else try writer.writeAll("\n\n");
+        if (i < namespaces.len - 1) try writer.writeAll(" | ") else try writer.writeAll("} JsonRpcMethod\n");
     }
+    try writer.writeAll(" */\n\n");
 
-    // Generate param/result helper types
-    try writer.writeAll(
-        \\/**
-        \\ * Extract parameters type for any JSON-RPC method
-        \\ */
-        \\export type JsonRpcParams<M extends JsonRpcMethod> =
-        \\
-    );
-
-    for (namespaces, 0..) |ns, i| {
-        const ns_pascal = try toPascalCase(allocator, ns);
-        defer allocator.free(ns_pascal);
-        try writer.print("  M extends {s}Method ? {s}Params<M> :", .{ ns_pascal, ns_pascal });
-        if (i < namespaces.len - 1) try writer.writeAll("\n") else try writer.writeAll("\n  never\n\n");
-    }
-
-    try writer.writeAll(
-        \\/**
-        \\ * Extract result type for any JSON-RPC method
-        \\ */
-        \\export type JsonRpcResult<M extends JsonRpcMethod> =
-        \\
-    );
-
-    for (namespaces, 0..) |ns, i| {
-        const ns_pascal = try toPascalCase(allocator, ns);
-        defer allocator.free(ns_pascal);
-        try writer.print("  M extends {s}Method ? {s}Result<M> :", .{ ns_pascal, ns_pascal });
-        if (i < namespaces.len - 1) try writer.writeAll("\n") else try writer.writeAll("\n  never\n");
-    }
+    // For now, skip the complex conditional types - JSDoc doesn't support them well
+    // Users can import specific namespace types directly
+    try writer.writeAll("export {}\n");
 
     try file.writeAll(output.items);
     std.debug.print("Generated {s}\n", .{path});
