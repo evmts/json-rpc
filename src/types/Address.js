@@ -2,7 +2,7 @@
  * @fileoverview Ethereum address type definition with validation
  */
 
-import { JsonRpcError, JsonRpcErrorCode } from './JsonRpcError.js'
+import { InvalidParamsError } from './JsonRpcError.js'
 
 /**
  * @typedef {import('./Hex.js').Hex} Hex
@@ -14,7 +14,7 @@ import { JsonRpcError, JsonRpcErrorCode } from './JsonRpcError.js'
  * Pattern: `^0x[0-9a-fA-F]{40}$`
  *
  * **Important**: Always use `isAddress()` to check if a value is a valid address before using `Address()`.
- * The `Address()` function will throw a `JsonRpcError` if the input is invalid.
+ * The `Address()` function will throw an `InvalidParamsError` if the input is invalid.
  *
  * @typedef {Hex & { readonly __brand: 'Address' }} Address
  * @see https://github.com/ethereum/execution-apis
@@ -53,7 +53,7 @@ export function isAddress(address) {
  *
  * @param {`0x${string}`} address - Hex string (must be exactly 20 bytes / 42 characters including 0x)
  * @returns {Address} Validated Address
- * @throws {JsonRpcError} If not a valid Ethereum address (code: -32602 Invalid params)
+ * @throws {import('./JsonRpcError.js').InvalidParamsError} If not a valid Ethereum address
  *
  * @example
  * ```js
@@ -67,17 +67,14 @@ export function isAddress(address) {
  * try {
  *   const addr = Address('0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0')
  * } catch (err) {
- *   if (err instanceof JsonRpcError) {
- *     console.error(`Invalid address: ${err.message}`)
- *   }
+ *   console.error(`${err.name} (${err.code}): ${err.message}`)
  * }
  * ```
  */
 export const Address = (address) => {
   if (!isAddress(address)) {
-    throw new JsonRpcError(
-      `Invalid Ethereum address: expected 20-byte hex string (0x followed by 40 hex characters), got "${address}"`,
-      JsonRpcErrorCode.INVALID_PARAMS
+    throw InvalidParamsError(
+      `Invalid Ethereum address: expected 20-byte hex string (0x followed by 40 hex characters), got "${address}"`
     )
   }
   return /** @type {Address} */ (address)

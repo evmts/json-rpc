@@ -2,7 +2,7 @@
  * @fileoverview 32-byte hash type definition with validation
  */
 
-import { JsonRpcError, JsonRpcErrorCode } from './JsonRpcError.js'
+import { InvalidParamsError } from './JsonRpcError.js'
 
 /**
  * @typedef {import('./Hex.js').Hex} Hex
@@ -14,7 +14,7 @@ import { JsonRpcError, JsonRpcErrorCode } from './JsonRpcError.js'
  * Pattern: `^0x[0-9a-f]{64}$`
  *
  * **Important**: Always use `isHash()` to check if a value is a valid hash before using `Hash()`.
- * The `Hash()` function will throw a `JsonRpcError` if the input is invalid.
+ * The `Hash()` function will throw an `InvalidParamsError` if the input is invalid.
  *
  * @typedef {Hex & { readonly __brand: 'Hash' }} Hash
  * @see https://github.com/ethereum/execution-apis
@@ -53,7 +53,7 @@ export function isHash(hash) {
  *
  * @param {`0x${string}`} hash - Hex string (must be exactly 32 bytes / 66 characters including 0x)
  * @returns {Hash} Validated Hash
- * @throws {JsonRpcError} If not a valid hash (code: -32602 Invalid params)
+ * @throws {import('./JsonRpcError.js').InvalidParamsError} If not a valid hash
  *
  * @example
  * ```js
@@ -67,17 +67,14 @@ export function isHash(hash) {
  * try {
  *   const hash = Hash('0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef')
  * } catch (err) {
- *   if (err instanceof JsonRpcError) {
- *     console.error(`Invalid hash: ${err.message}`)
- *   }
+ *   console.error(`${err.name} (${err.code}): ${err.message}`)
  * }
  * ```
  */
 export const Hash = (hash) => {
   if (!isHash(hash)) {
-    throw new JsonRpcError(
-      `Invalid 32-byte hash: expected lowercase hex string (0x followed by 64 hex characters), got "${hash}"`,
-      JsonRpcErrorCode.INVALID_PARAMS
+    throw InvalidParamsError(
+      `Invalid 32-byte hash: expected lowercase hex string (0x followed by 64 hex characters), got "${hash}"`
     )
   }
   return /** @type {Hash} */ (hash)
