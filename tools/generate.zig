@@ -112,12 +112,22 @@ pub fn main() !void {
 
             try generateJavaScriptWithJSDoc(allocator, method, method_name, js_file);
 
-            std.debug.print("Created: {s}, {s}, and {s}\n", .{ json_path, zig_path, js_path });
+            // Write Go file
+            const go_path = try std.fmt.allocPrint(allocator, "src/{s}/{s}/{s}.go", .{ namespace, method_part, method_name });
+            defer allocator.free(go_path);
+
+            const go_file = try std.fs.cwd().createFile(go_path, .{});
+            defer go_file.close();
+
+            try generateGoStruct(allocator, method, struct_name, method_name, go_file);
+
+            std.debug.print("Created: {s}, {s}, {s}, and {s}\n", .{ json_path, zig_path, js_path, go_path });
         }
 
-        // Generate methods.js and methods.zig for this namespace
+        // Generate methods.js, methods.zig, and methods.go for this namespace
         try generateNamespaceMethodsJS(allocator, namespace, method_list.items);
         try generateNamespaceMethodsZig(allocator, namespace, method_list.items);
+        try generateNamespaceMethodsGo(allocator, namespace, method_list.items);
     }
 
     // Generate root JsonRpc.js and JsonRpc.zig
@@ -131,6 +141,7 @@ pub fn main() !void {
 
     try generateRootJsonRpcJS(allocator, namespace_list.items);
     try generateRootJsonRpcZig(allocator, namespace_list.items);
+    try generateRootJsonRpcGo(allocator, namespace_list.items);
 
     std.debug.print("\nDone! Processed {d} methods across {d} namespaces.\n", .{ methods_array.items.len, namespaces.count() });
 }
@@ -860,6 +871,328 @@ fn generateRootJsonRpcZig(allocator: std.mem.Allocator, namespaces: []const []co
         \\};
         \\
     );
+
+    try file.writeAll(output.items);
+    std.debug.print("Generated {s}\n", .{path});
+}
+
+fn generateGoStruct(allocator: std.mem.Allocator, method: std.json.Value, _: []const u8, method_name: []const u8, file: std.fs.File) !void {
+    var output: std.ArrayListUnmanaged(u8) = .{};
+    defer output.deinit(allocator);
+    const writer = output.writer(allocator);
+
+    // Determine package name from method name (first part before underscore)
+    var parts = std.mem.splitScalar(u8, method_name, '_');
+    const package_name = parts.next() orelse "jsonrpc";
+
+    // Write package declaration
+    try writer.print("package {s}\n\n", .{package_name});
+
+    // Write imports
+    try writer.writeAll("import (\n");
+    try writer.writeAll("\t\"encoding/json\"\n");
+    try writer.writeAll("\t\"fmt\"\n\n");
+    try writer.writeAll("\t\"github.com/ethereum/execution-apis/types\"\n");
+    try writer.writeAll(")\n\n");
+
+    // Write summary as comment
+    if (method.object.get("summary")) |summary| {
+        if (summary == .string) {
+            try writer.writeAll("// ");
+            try writer.writeAll(summary.string);
+            try writer.writeAll("\n");
+        }
+    }
+
+    // Write examples as comments
+    if (method.object.get("examples")) |examples| {
+        if (examples == .array and examples.array.items.len > 0) {
+            try writer.writeAll("//\n// Example:\n");
+            const first_example = examples.array.items[0];
+            if (first_example.object.get("params")) |params| {
+                if (params == .array) {
+                    for (params.array.items) |param| {
+                        if (param.object.get("name")) |name| {
+                            if (param.object.get("value")) |value| {
+                                try writer.writeAll("// ");
+                                try writer.writeAll(name.string);
+                                try writer.writeAll(": ");
+                                try writeJsonValue(value, writer.any());
+                                try writer.writeAll("\n");
+                            }
+                        }
+                    }
+                }
+            }
+            if (first_example.object.get("result")) |result| {
+                if (result.object.get("value")) |value| {
+                    try writer.writeAll("// Result: ");
+                    try writeJsonValue(value, writer.any());
+                    try writer.writeAll("\n");
+                }
+            }
+        }
+    }
+
+    try writer.writeAll("//\n// Implements the ");
+    try writer.writeAll(method_name);
+    try writer.writeAll(" JSON-RPC method.\n");
+
+    // Export method name constant
+    try writer.writeAll("\n// Method is the JSON-RPC method name\n");
+    try writer.writeAll("const Method = \"");
+    try writer.writeAll(method_name);
+    try writer.writeAll("\"\n\n");
+
+    // Generate Params struct
+    if (method.object.get("params")) |params| {
+        if (params == .array) {
+            try generateGoParams(allocator, params.array, method_name, writer.any());
+        }
+    }
+
+    // Generate Result struct
+    if (method.object.get("result")) |result| {
+        try generateGoResult(allocator, result, method_name, writer.any());
+    }
+
+    try file.writeAll(output.items);
+}
+
+fn generateGoParams(allocator: std.mem.Allocator, params: std.json.Array, method_name: []const u8, writer: anytype) !void {
+    try writer.writeAll("// Params represents the parameters for ");
+    try writer.writeAll(method_name);
+    try writer.writeAll("\ntype Params struct {\n");
+
+    for (params.items) |param| {
+        const param_name = param.object.get("name").?.string;
+        const schema = param.object.get("schema").?;
+
+        // Write doc comment for field
+        if (schema.object.get("title")) |title| {
+            try writer.writeAll("\t// ");
+            try writer.writeAll(title.string);
+            try writer.writeAll("\n");
+        }
+
+        // Determine field type and name (PascalCase for Go)
+        const field_name = try toPascalCase(allocator, param_name);
+        defer allocator.free(field_name);
+
+        const field_type = try inferGoType(schema);
+        try writer.writeAll("\t");
+        try writer.writeAll(field_name);
+        try writer.writeAll(" ");
+        try writer.writeAll(field_type);
+        try writer.print(" `json:\"-\"`\n", .{});
+    }
+
+    try writer.writeAll("}\n\n");
+
+    // Custom JSON marshaling for positional array
+    try writer.writeAll("// MarshalJSON implements json.Marshaler for Params.\n");
+    try writer.writeAll("// JSON-RPC 2.0 uses positional array parameters.\n");
+    try writer.writeAll("func (p Params) MarshalJSON() ([]byte, error) {\n");
+    try writer.writeAll("\treturn json.Marshal([]interface{}{\n");
+
+    for (params.items) |param| {
+        const param_name = param.object.get("name").?.string;
+        const field_name = try toPascalCase(allocator, param_name);
+        defer allocator.free(field_name);
+
+        try writer.writeAll("\t\tp.");
+        try writer.writeAll(field_name);
+        try writer.writeAll(",\n");
+    }
+
+    try writer.writeAll("\t})\n");
+    try writer.writeAll("}\n\n");
+
+    // Custom JSON unmarshaling
+    try writer.writeAll("// UnmarshalJSON implements json.Unmarshaler for Params.\n");
+    try writer.writeAll("func (p *Params) UnmarshalJSON(data []byte) error {\n");
+    try writer.writeAll("\tvar arr []json.RawMessage\n");
+    try writer.writeAll("\tif err := json.Unmarshal(data, &arr); err != nil {\n");
+    try writer.writeAll("\t\treturn err\n");
+    try writer.writeAll("\t}\n\n");
+    try writer.print("\tif len(arr) != {d} {{\n", .{params.items.len});
+    try writer.print("\t\treturn fmt.Errorf(\"expected {d} parameters, got %d\", len(arr))\n", .{params.items.len});
+    try writer.writeAll("\t}\n\n");
+
+    for (params.items, 0..) |param, i| {
+        const param_name = param.object.get("name").?.string;
+        const field_name = try toPascalCase(allocator, param_name);
+        defer allocator.free(field_name);
+
+        try writer.print("\tif err := json.Unmarshal(arr[{d}], &p.{s}); err != nil {{\n", .{ i, field_name });
+        try writer.print("\t\treturn fmt.Errorf(\"parameter {d} ({s}): %w\", err)\n", .{ i, param_name });
+        try writer.writeAll("\t}\n\n");
+    }
+
+    try writer.writeAll("\treturn nil\n");
+    try writer.writeAll("}\n\n");
+}
+
+fn generateGoResult(allocator: std.mem.Allocator, result: std.json.Value, method_name: []const u8, writer: anytype) !void {
+    _ = allocator;
+
+    const schema = result.object.get("schema").?;
+    const result_type = try inferGoType(schema);
+
+    try writer.writeAll("// Result represents the result for ");
+    try writer.writeAll(method_name);
+    try writer.writeAll("\n");
+
+    if (schema.object.get("title")) |title| {
+        try writer.writeAll("//\n// ");
+        try writer.writeAll(title.string);
+        try writer.writeAll("\n");
+    }
+
+    try writer.writeAll("type Result struct {\n");
+    try writer.writeAll("\tValue ");
+    try writer.writeAll(result_type);
+    try writer.writeAll(" `json:\"-\"`\n");
+    try writer.writeAll("}\n\n");
+
+    // Custom JSON marshaling - unwrap the Value field
+    try writer.writeAll("// MarshalJSON implements json.Marshaler for Result.\n");
+    try writer.writeAll("func (r Result) MarshalJSON() ([]byte, error) {\n");
+    try writer.writeAll("\treturn json.Marshal(r.Value)\n");
+    try writer.writeAll("}\n\n");
+
+    // Custom JSON unmarshaling
+    try writer.writeAll("// UnmarshalJSON implements json.Unmarshaler for Result.\n");
+    try writer.writeAll("func (r *Result) UnmarshalJSON(data []byte) error {\n");
+    try writer.writeAll("\treturn json.Unmarshal(data, &r.Value)\n");
+    try writer.writeAll("}\n");
+}
+
+fn inferGoType(schema: std.json.Value) ![]const u8 {
+    // Check for anyOf (union types like BlockSpec)
+    if (schema.object.get("anyOf")) |_| {
+        if (schema.object.get("title")) |title| {
+            const title_str = title.string;
+            if (std.mem.indexOf(u8, title_str, "Block") != null) {
+                return "types.BlockSpec";
+            }
+        }
+        return "types.BlockSpec";
+    }
+
+    // Check pattern to determine type
+    if (schema.object.get("pattern")) |pattern| {
+        const pattern_str = pattern.string;
+
+        // Address pattern: ^0x[0-9a-fA-F]{40}$
+        if (std.mem.indexOf(u8, pattern_str, "{40}") != null) {
+            return "types.Address";
+        }
+
+        // Hash pattern: ^0x[0-9a-f]{64}$
+        if (std.mem.indexOf(u8, pattern_str, "{64}") != null) {
+            return "types.Hash";
+        }
+
+        // Quantity pattern: ^0x(0|[1-9a-f][0-9a-f]*)$
+        if (std.mem.indexOf(u8, pattern_str, "[1-9a-f]") != null) {
+            return "types.Quantity";
+        }
+    }
+
+    // Check for enum (likely BlockTag)
+    if (schema.object.get("enum")) |_| {
+        return "types.BlockTag";
+    }
+
+    // Default to Quantity
+    return "types.Quantity";
+}
+
+fn generateNamespaceMethodsGo(allocator: std.mem.Allocator, namespace: []const u8, methods: []const MethodInfo) !void {
+    const path = try std.fmt.allocPrint(allocator, "src/{s}/methods.go", .{namespace});
+    defer allocator.free(path);
+
+    const file = try std.fs.cwd().createFile(path, .{});
+    defer file.close();
+
+    var output: std.ArrayListUnmanaged(u8) = .{};
+    defer output.deinit(allocator);
+    const writer = output.writer(allocator);
+
+    const ns_pascal = try toPascalCase(allocator, namespace);
+    defer allocator.free(ns_pascal);
+
+    // Write package declaration
+    try writer.print("package {s}\n\n", .{namespace});
+
+    // Write file comment
+    try writer.print(
+        \\// Package {s} provides {s} JSON-RPC methods.
+        \\//
+        \\// This file provides a type-safe mapping of {s} namespace methods.
+        \\
+        \\
+    , .{ namespace, ns_pascal, namespace });
+
+    // Generate method name constants
+    try writer.writeAll("// Method name constants\n");
+    try writer.writeAll("const (\n");
+
+    for (methods) |m| {
+        const const_name = try toPascalCase(allocator, m.name);
+        defer allocator.free(const_name);
+
+        try writer.print("\tMethod{s} = \"{s}\"\n", .{ const_name, m.name });
+    }
+
+    try writer.writeAll(")\n\n");
+
+    // Generate method registry
+    try writer.writeAll("// MethodRegistry maps method names to their string identifiers\n");
+    try writer.print("var MethodRegistry = map[string]string{{\n", .{});
+
+    for (methods) |m| {
+        const const_name = try toPascalCase(allocator, m.name);
+        defer allocator.free(const_name);
+
+        try writer.print("\t\"{s}\": Method{s},\n", .{ m.name, const_name });
+    }
+
+    try writer.writeAll("}\n");
+
+    try file.writeAll(output.items);
+    std.debug.print("Generated {s}\n", .{path});
+}
+
+fn generateRootJsonRpcGo(allocator: std.mem.Allocator, namespaces: []const []const u8) !void {
+    const path = "src/jsonrpc.go";
+    const file = try std.fs.cwd().createFile(path, .{});
+    defer file.close();
+
+    var output: std.ArrayListUnmanaged(u8) = .{};
+    defer output.deinit(allocator);
+    const writer = output.writer(allocator);
+
+    try writer.writeAll(
+        \\// Package jsonrpc provides Ethereum JSON-RPC type definitions.
+        \\//
+        \\// This package combines all namespace methods into a unified interface.
+        \\// Methods are organized by namespace for tree-shakability - import only
+        \\// the namespaces you need.
+        \\package jsonrpc
+        \\
+        \\
+    );
+
+    // Document available namespaces
+    try writer.writeAll("// Available namespaces:\n");
+    for (namespaces) |ns| {
+        try writer.print("//   - {s}: import \"github.com/ethereum/execution-apis/{s}\"\n", .{ ns, ns });
+    }
+    try writer.writeAll("//\n");
+    try writer.writeAll("// Primitive types are available at:\n");
+    try writer.writeAll("//   - types: import \"github.com/ethereum/execution-apis/types\"\n");
 
     try file.writeAll(output.items);
     std.debug.print("Generated {s}\n", .{path});

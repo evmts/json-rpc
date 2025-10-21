@@ -23,6 +23,21 @@ pub fn main() !void {
                 const name = try allocator.dupe(u8, entry.name);
                 try dirs_to_remove.append(allocator, name);
             }
+        } else if (entry.kind == .file) {
+            // Remove root-level generated files (JsonRpc.*, jsonrpc.*)
+            const should_remove = std.mem.eql(u8, entry.name, "JsonRpc.zig") or
+                std.mem.eql(u8, entry.name, "JsonRpc.js") or
+                std.mem.eql(u8, entry.name, "jsonrpc.go");
+
+            if (should_remove) {
+                const file_path = try std.fmt.allocPrint(allocator, "src/{s}", .{entry.name});
+                defer allocator.free(file_path);
+
+                std.fs.cwd().deleteFile(file_path) catch |err| {
+                    std.debug.print("Warning: Could not remove {s}: {}\n", .{ file_path, err });
+                };
+                std.debug.print("Removed: {s}\n", .{file_path});
+            }
         }
     }
 
