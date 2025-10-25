@@ -154,8 +154,8 @@ The generator is idempotent: running it multiple times produces identical output
 
 ```typescript
 // Import specific method types (tree-shakable)
-import { eth_getBalance } from '@tevm/apis/eth/getBalance'
-import type { Address, BlockTag } from '@tevm/apis'
+import { eth_getBalance } from '@tevm/json-rpc/eth/getBalance'
+import type { Address, BlockTag } from '@tevm/json-rpc'
 
 // Type-safe parameters
 const params: typeof eth_getBalance.Params = {

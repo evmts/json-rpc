@@ -15,9 +15,9 @@ A code generator that transforms the OpenRPC specification (`execution-apis/open
 ## Installation
 
 ```bash
-npm install @tevm/apis
+npm install @tevm/json-rpc
 # or
-bun add @tevm/apis
+bun add @tevm/json-rpc
 ```
 
 ## Build from Source
@@ -68,8 +68,8 @@ All Ethereum types use strict validation patterns:
 
 ```typescript
 // Import specific method types
-import { eth_getBalance, EthMethod } from '@tevm/apis'
-import type { Address, Quantity } from '@tevm/apis'
+import { eth_getBalance, EthMethod } from '@tevm/json-rpc'
+import type { Address, Quantity } from '@tevm/json-rpc'
 
 // Type-safe parameters and results
 type Params = typeof eth_getBalance.Params

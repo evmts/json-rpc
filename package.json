@@ -1,5 +1,5 @@
 {
-  "name": "@tevm/apis",
+  "name": "@tevm/json-rpc",
   "version": "1.0.0-rc",
   "description": "Type-safe TypeScript and Zig code generated from the official Ethereum JSON-RPC specification",
   "keywords": [

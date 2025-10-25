@@ -3,7 +3,7 @@ import type { Address, Hash, Quantity, BlockTag, BlockSpec } from './types/index
 import { EthMethod, DebugMethod, EngineMethod } from './JsonRpc.js'
 import type { JsonRpcMethod, JsonRpcParams, JsonRpcResult } from './JsonRpc.js'
 
-describe('@tevm/apis', () => {
+describe('@tevm/json-rpc', () => {
   describe('Type System', () => {
     test('Address type has correct brand', () => {
       const addr: Address = '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0' as Address
