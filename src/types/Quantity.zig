@@ -1,6 +1,9 @@
 const std = @import("std");
 
 /// Hex-encoded unsigned integer quantity
+///
+/// Follows @tevm/primitives conventions for Uint types (Uint, Uint64, Uint256).
+/// Represents unsigned integers with minimal hex encoding (no leading zeros except "0x0").
 pub const Quantity = @This();
 
 /// Pattern for validating hex-encoded quantity: ^0x(0|[1-9a-f][0-9a-f]*)$

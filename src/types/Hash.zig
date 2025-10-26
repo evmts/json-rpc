@@ -1,6 +1,9 @@
 const std = @import("std");
 
 /// 32-byte hash (hex-encoded with 0x prefix)
+///
+/// Follows @tevm/primitives conventions for Hash32/Bytes32 types.
+/// Represents cryptographic hashes (Keccak256, transaction hashes, block hashes, etc.)
 pub const Hash = @This();
 
 /// Pattern for validating hex-encoded hash: ^0x[0-9a-f]{64}$

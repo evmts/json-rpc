@@ -1,6 +1,9 @@
 const std = @import("std");
 
 /// Block tag for referencing specific blocks
+///
+/// Follows @tevm/primitives conventions for BlockTag type.
+///
 /// - `earliest`: The lowest numbered block the client has available
 /// - `finalized`: The most recent crypto-economically secure block
 /// - `safe`: The most recent block that is safe from re-orgs

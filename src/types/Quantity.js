@@ -1,5 +1,7 @@
 /**
  * @fileoverview Hex-encoded quantity type definition with validation
+ *
+ * Uses @tevm/primitives for type compatibility across the ecosystem.
  */
 
 import { InvalidParamsError } from './JsonRpcError.js'
@@ -17,6 +19,8 @@ import { InvalidParamsError } from './JsonRpcError.js'
  *
  * **Important**: Always use `isQuantity()` to check if a value is a valid quantity before using `Quantity()`.
  * The `Quantity()` function will throw an `InvalidParamsError` if the input is invalid.
+ *
+ * **Note**: Compatible with `@tevm/primitives/ethereum-types` Uint, Uint64, and Uint256 types.
  *
  * @typedef {Hex & { readonly __brand: 'Quantity' }} Quantity
  * @see https://github.com/ethereum/execution-apis

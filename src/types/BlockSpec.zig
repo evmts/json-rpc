@@ -4,6 +4,10 @@ const Hash = @import("Hash.zig");
 const BlockTag = @import("BlockTag.zig").BlockTag;
 
 /// Block specification - can be a block number, tag, or hash
+///
+/// Follows @tevm/primitives conventions for BlockIdentifier type.
+///
+/// This union type allows Ethereum JSON-RPC methods to accept flexible block references.
 pub const BlockSpec = union(enum) {
     /// Block number (hex-encoded)
     number: Quantity,

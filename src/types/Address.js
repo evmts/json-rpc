@@ -1,5 +1,7 @@
 /**
  * @fileoverview Ethereum address type definition with validation
+ *
+ * Uses @tevm/primitives for type compatibility across the ecosystem.
  */
 
 import { InvalidParamsError } from './JsonRpcError.js'
@@ -15,6 +17,8 @@ import { InvalidParamsError } from './JsonRpcError.js'
  *
  * **Important**: Always use `isAddress()` to check if a value is a valid address before using `Address()`.
  * The `Address()` function will throw an `InvalidParamsError` if the input is invalid.
+ *
+ * **Note**: Compatible with `@tevm/primitives/ethereum-types` Address type.
  *
  * @typedef {Hex & { readonly __brand: 'Address' }} Address
  * @see https://github.com/ethereum/execution-apis

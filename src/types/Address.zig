@@ -1,6 +1,10 @@
 const std = @import("std");
 
 /// Ethereum address (20 bytes, hex-encoded with 0x prefix)
+///
+/// Compatible with @tevm/primitives Address type.
+/// When primitives native dependencies are available, this can be upgraded to use
+/// primitives.Address directly for access to additional utilities (checksum, CREATE2, etc.)
 pub const Address = @This();
 
 /// Pattern for validating hex-encoded address: ^0x[0-9a-fA-F]{40}$
@@ -49,7 +53,7 @@ fn hexCharToNibble(c: u8) !u4 {
 }
 
 /// Serialize to JSON using Zig 0.15 API
-pub fn jsonStringify(self: Address, jws: *std.json.Stringify) !void {
+pub fn jsonStringify(self: Address, jws: anytype) !void {
     var buf: [42]u8 = undefined;
     buf[0] = '0';
     buf[1] = 'x';

@@ -1,5 +1,7 @@
 /**
  * @fileoverview 32-byte hash type definition with validation
+ *
+ * Uses @tevm/primitives for type compatibility across the ecosystem.
  */
 
 import { InvalidParamsError } from './JsonRpcError.js'
@@ -15,6 +17,8 @@ import { InvalidParamsError } from './JsonRpcError.js'
  *
  * **Important**: Always use `isHash()` to check if a value is a valid hash before using `Hash()`.
  * The `Hash()` function will throw an `InvalidParamsError` if the input is invalid.
+ *
+ * **Note**: Compatible with `@tevm/primitives/ethereum-types` Hash32 and Bytes32 types.
  *
  * @typedef {Hex & { readonly __brand: 'Hash' }} Hash
  * @see https://github.com/ethereum/execution-apis
