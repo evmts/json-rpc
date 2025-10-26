@@ -21,6 +21,13 @@ pub fn build(b: *std.Build) void {
     // target and optimize options) will be listed when running `zig build --help`
     // in this directory.
 
+    // Get the primitives dependency
+    const primitives_dep = b.dependency("guillotine_primitives", .{
+        .target = target,
+        .optimize = .Debug,
+    });
+    const primitives_mod = primitives_dep.module("primitives");
+
     // This creates a module, which represents a collection of source files alongside
     // some compilation options, such as optimization mode and linked system libraries.
     // Zig modules are the preferred way of making Zig code available to consumers.
@@ -40,11 +47,17 @@ pub fn build(b: *std.Build) void {
         // which requires us to specify a target.
         .target = target,
     });
+    mod.addImport("primitives", primitives_mod);
 
     // Creates an executable that will run `test` blocks from the provided module.
     const mod_tests = b.addTest(.{
         .root_module = mod,
     });
+
+    // Link required C artifacts from primitives
+    mod_tests.linkLibrary(primitives_dep.artifact("blst"));
+    mod_tests.linkLibrary(primitives_dep.artifact("c-kzg-4844"));
+    mod_tests.linkLibC();
 
     // A run step that will run the test executable.
     const run_mod_tests = b.addRunArtifact(mod_tests);
@@ -82,6 +95,7 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("tools/generate.zig"),
         .target = target,
     });
+    generate_mod.addImport("primitives", primitives_mod);
     const generate_exe = b.addExecutable(.{
         .name = "generate",
         .root_module = generate_mod,
